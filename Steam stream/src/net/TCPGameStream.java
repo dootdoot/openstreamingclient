@@ -97,7 +97,7 @@ public class TCPGameStream implements Runnable {
 
 	};
 	private static final byte[] start_code = new byte[]{
-		0x00, 0x00, 0x01
+		0x00, 0x00, 0x00, 0x01
 	};
 	private static final byte[] fourx_zero_bytes = new byte[]{
 		0x00, 0x00, 0x00, 0x00
@@ -155,12 +155,13 @@ public class TCPGameStream implements Runnable {
 					processControlMessage(byteBuf, 0, packet.getLength());
 					break;
 				case PACKET_TYPE_CONTROL_CONTINUED:
-					//System.out.println("Control cont.");
+					if(byteBuf[0] == 0x05){
+						System.out.println("Video control cont.");
+					}
 					//System.out.println(Hex.toHexString(byteBuf));
 					int channel = byteBuf[4];
 					if (channel >= Stream.EStreamChannel.k_EStreamChannelDataChannelStart_VALUE) {
 						splitPacketBuffer.write(byteBuf, 0, packet.getLength());
-						System.out.println("not cutting");
 					} else{
 						splitPacketBuffer.write(byteBuf, 13, packet.getLength() - 13);
 					}
@@ -292,8 +293,33 @@ public class TCPGameStream implements Runnable {
 			System.out.println("Writing audio control message");
 			audioOut.write(msg, offset+30, length-30);
 		}
-		
+		private int packetCount = 0;
 		private void processVideoControlMessage(byte[] msg, int offset, int length) throws IOException {
+			if(msg[01] != 0x00){
+				System.out.println("Packet is a repeat!");
+				return;
+			}
+			if(msg[05] != 0x00){
+				System.out.println("PAckets remaining!");
+			}
+			if((msg[07] & 0xff) != packetCount){
+				//System.out.println(packetCount + ":" + (msg[07] & 0xff));
+			}
+			packetCount++;
+			if(msg[36] != 0x01){
+				byte[] array = new byte[]{
+					msg[36]
+				};
+				//System.out.println("Packet " + (msg[7] & 0xff) + "\'s value at header position: " + Hex.toHexString(array));
+				//System.out.println("Packet doesn't start with NAL header!");
+			} else{
+				//System.out.println("Packet starts with NAL Header");
+			}
+			
+			loggingOut.write(msg, offset + 33, length - 33);
+			loggingFull.write(msg, 0, length);
+			
+			/*
 			String message_string = Hex.toHexString(msg);
 			int start_pos = message_string.indexOf("000000");//Bytes.indexOf(msg, start_code);
 			boolean found = false;
@@ -339,13 +365,13 @@ public class TCPGameStream implements Runnable {
 				//loggingOut.write("NO_NAL_START".getBytes());
 				//loggingFull.write("NO_NAL_START".getBytes());
 				loggingOut.write(msg, offset + 33, length - 33);	//USE 33
-				loggingFull.write(msg, 33, length - 33);
+				//loggingFull.write(msg, 33, length - 33);
 				//loggingOut.write("NO_NAL_STOP".getBytes());
 				//loggingFull.write("NO_NAL_STOP".getBytes());
 			} else{
 				System.out.println("Check_pos: " + check_pos);
 				loggingOut.write(msg, offset + check_pos, length - check_pos);
-				loggingFull.write(msg, check_pos, length + check_pos);
+				//loggingFull.write(msg, check_pos, length + check_pos);
 			}
 			//loggingOut.write("PACKET_STOP".getBytes());
 			//loggingFull.write("PACKET_STOP".getBytes());
@@ -356,9 +382,13 @@ public class TCPGameStream implements Runnable {
 			}
 			
 			//loggingOut.write(msg, offset + 33, length - 33);
-			//loggingFull.write(msg, 33, length - 33);
+			loggingFull.write(msg, 0, length);
 			
-
+		
+			//loggingOut.write("PACKET_START".getBytes());
+			//loggingOut.write(msg, 0, length);
+			//loggingOut.write("PACKET_STOP".getBytes());
+			 * */
 		}
 		
 		private GeneratedMessage readControlMessage(byte[] buffer, int beginOfBuffer, int lengthOfBuffer) {
@@ -380,8 +410,8 @@ public class TCPGameStream implements Runnable {
 		}
 		
 		private void setupLogging() throws IOException {
-			loggingOut = new FileOutputStream(new File("streaminglog4.dat"));
-			loggingFull = new FileOutputStream(new File("streaminglog4full.dat"));
+			loggingOut = new FileOutputStream(new File("streaminglog7.dat"));
+			loggingFull = new FileOutputStream(new File("streaminglog7full.dat"));
 			audioOut = new FileOutputStream(new File("audiolog.dat"));
 		}
 		

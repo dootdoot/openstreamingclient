@@ -55,7 +55,7 @@ public class Main implements Runnable{
 			dis.read(headerBytes);
 			
 			SteammessagesRemoteclientDiscovery.CMsgRemoteClientBroadcastHeader header = SteammessagesRemoteclientDiscovery.CMsgRemoteClientBroadcastHeader.parseFrom(headerBytes);
-			System.out.println(packet.getAddress().toString() + ": " + header.getMsgType());
+			//System.out.println(packet.getAddress().toString() + ": " + header.getMsgType());
 			
 			int bodyLength = Integer.reverseBytes(dis.readInt());
 			byte[] bodyBytes = new byte[bodyLength];
